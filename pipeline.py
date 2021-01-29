@@ -48,7 +48,7 @@ class recovery_prediction_pipeline(object):
           
         self.olink_filename = olink_filename    
         self.clinical_report_filename = clinical_report_filename    
-        self.recovery_feature_predictions_save_folder = self.main_save_folder+'recovery_feature_predictions/'+self.target_recovery_feature+'/'
+        self.recovery_feature_predictions_save_folder = self.main_save_folder+'recovery_feature_predictions/baseline_pred/'
 
         os.makedirs(self.main_save_folder, exist_ok=True)
         params_filename = self.main_save_folder+'params.txt'
@@ -3845,7 +3845,7 @@ if __name__ == "__main__":
     # target_recovery_feature_type = '0.25_quantile' 
     
     
-    cytof_filename = 'Pre_stim_adjusted':'./data/immune/HipValidation_cytof_Pre_stim_baseline_adjusted_all_plates.csv.csv'
+    cytof_filename = './data/immune/HipValidation_cytof_Pre_stim_baseline_adjusted_all_plates.csv.csv'
 
 
 
