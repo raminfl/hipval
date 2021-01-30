@@ -63,172 +63,76 @@ class recovery_prediction_pipeline(object):
                 filetowrite.close()
 
 
-    def repeated_k_folds_per_patient_single_feature(self, output_array,single_feat,patient,X,Y,model_selection=False, param_grid = [{'n_estimators': [50,100,200], 'loss': ['linear', 'square', 'exponential']}]):
-        # print('**************************** repeated_k_folds_per_patient')
-
-       
-        # df_feat_importance_col = ['iteration', 'fold']
-        # df_feat_importance_col.extend(features)
-        # df_feat_importance = pd.DataFrame(columns=df_feat_importance_col)
+    def repeated_k_folds_per_patient_single_feature(self, output_array,single_feat,patient,X,Y):
         
-        # params for rf regressor param_grid = [{'n_estimators': [50,100,200], 'max_depth': [2, 5, 10, None]}]
+
         for k in range(1, self.no_of_reps+1):
             df_predictions = pd.DataFrame(columns=['single_feat', 'patient_id', 'ground_truth', 'predicted'])
-            # df_predictions_preIncluded = pd.DataFrame(columns=['patient_id', 'ground_truth', 'predicted'])
+            
             kf = KFold(n_splits=self.no_of_folds, shuffle=True, random_state=k)
             
             fold = 0
             X = X.reshape(-1,1)
             for train_index, test_index in kf.split(X):
-                # print('rep = {}, fold = {}'.format(k,fold))
             
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = Y[train_index], Y[test_index]
-                
-                # X_test_combined = np.concatenate((X_test, X_pre), axis=0)
-                # Y_test_combined = np.concatenate((y_test, Y_pre), axis=0)
-                
-                # scalerX = StandardScaler()
-                # scalerX.fit(X_train)
-                # X_train = scalerX.transform(X_train)
-                # X_test = scalerX.transform(X_test)
-                # X_test_combined = scalerX.transform(X_test_combined)
-
-                # scalerY = StandardScaler()
-                # scalerY.fit(y_train.reshape(-1, 1))
-                # y_train = scalerY.transform(y_train.reshape(-1, 1))
-                # y_test = scalerY.transform(y_test.reshape(-1, 1))
-                # Y_test_combined = scalerY.transform(Y_test_combined.reshape(-1, 1))
-
+            
                 max_iter = 1000000
-                if model_selection:
-                    # grid = GridSearchCV(estimator=estimator(random_state=k), param_grid=param_grid, cv=5, n_jobs=10, iid=True)
-                    grid = GridSearchCV(estimator=estimator(DecisionTreeRegressor(max_depth=4), random_state=k), param_grid=param_grid, cv=5, n_jobs=10, iid=True)
-                    grid.fit(X_train, y_train.flatten())
-                    clf = grid.best_estimator_
-                else:
-                    if self.estimator_str == 'RF':
-                        clf = RandomForestRegressor(n_estimators=self.RF_no_of_estimators, random_state=k)
-                    else: 
-                        clf = AdaBoostRegressor(DecisionTreeRegressor(max_depth=4), n_estimators=self.RF_no_of_estimators, random_state=k)
-                    
-                    # clf = estimator(n_estimators=300, n_jobs=5)
-                    # clf = estimator(DecisionTreeRegressor(max_depth=4), n_estimators=300, random_state=k)
-                    clf.fit(X_train, y_train.flatten())
-                
-                
+                clf = RandomForestRegressor(n_estimators=self.RF_no_of_estimators, random_state=k)
+                clf.fit(X_train, y_train.flatten())
             
                 y_predicted = clf.predict(X_test)
-                # y_predicted_combined = clf.predict(X_test_combined)
-        
-                # importances = clf.feature_importances_
-                # print(importances)
-                # df_feat_importance.loc[df_feat_importance.shape[0],:] = [k, fold] + list(importances)
-                # print(df_feat_importance)
-                # sys.exit()
-                # std = np.std([tree.feature_importances_ for tree in clf.estimators_],
-                # std = np.std([tree.feature_importances_ for tree in clf.estimators_],
-                #             axis=0)
-                # indices = np.argsort(importances)[::-1]
-
-                # Print the feature ranking
-                # print("Feature ranking:")
-
-                # for f in range(X.shape[1]):
-                #     print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
-                # return
-                # for i in range(y_test.shape[0]):
-                #     df_predictions.loc[df_predictions.shape[0],:] = [patient_ids_test[i], scalerY.inverse_transform(y_test)[i][0], scalerY.inverse_transform(y_predicted)[i]]
-                #     df_fold_predictions.loc[df_fold_predictions.shape[0],:] = [patient_ids_test[i], scalerY.inverse_transform(y_test)[i][0], scalerY.inverse_transform(y_predicted)[i]]
-                #     # df_predictions.loc[df_predictions.shape[0],:] = [patient_ids_test[i], y_test[i], y_predicted[i]]
-                # print(y_test.flatten())
-                # print(y_predicted)
+               
                 df_fold_predictions = pd.DataFrame(columns=['single_feat', 'patient_id', 'ground_truth', 'predicted'])
                 for y_ground, y_pred in zip(y_test.flatten(), y_predicted):
-                    # df_predictions.loc[df_predictions.shape[0],:] = [patient, scalerY.inverse_transform([y_ground])[0], scalerY.inverse_transform([y_pred])[0]]
-                    # df_fold_predictions.loc[df_fold_predictions.shape[0],:] = [patient, scalerY.inverse_transform([y_ground])[0], scalerY.inverse_transform([y_pred])[0]]
                     df_predictions.loc[df_predictions.shape[0],:] = [single_feat, patient, y_ground, y_pred]
                     df_fold_predictions.loc[df_fold_predictions.shape[0],:] = [single_feat, patient, y_ground, y_pred]
-                
-                # for y_ground, y_pred in zip(Y_test_combined.flatten(), y_predicted_combined):
-                #     # df_predictions_preIncluded.loc[df_predictions_preIncluded.shape[0],:] = [patient, scalerY.inverse_transform([y_ground])[0], scalerY.inverse_transform([y_pred])[0]]
-                #     df_predictions_preIncluded.loc[df_predictions_preIncluded.shape[0],:] = [patient, y_ground, y_pred]
                 
                 fold += 1
                 
                 rho, pval = spearmanr(df_fold_predictions['ground_truth'], df_fold_predictions['predicted'])
-                # print('spearman rho = {} pval = {}'.format(rho, pval))
-                rho, pval = pearsonr(df_fold_predictions['ground_truth'], df_fold_predictions['predicted'])
-                # print('pearson rho = {} pval = {}'.format(rho, pval))
-                
-        
             
             df_predictions.sort_values(by='ground_truth', axis=0, ascending=True, inplace=True)
             df_predictions.reset_index(drop=True, inplace=True)
             df_predictions_filename = self.single_feat_actigraph_predictions_save_folder+'{}/patient_{}/'.format(single_feat, patient)
-        
             os.makedirs(df_predictions_filename, exist_ok=True)
-            # os.makedirs(df_predictions_preIncluded_filename, exist_ok=True)
             df_predictions.to_csv(df_predictions_filename+'prediction_rep_{}.csv'.format(k), header=True, index=False)
-            # df_predictions_preIncluded.to_csv(df_predictions_preIncluded_filename+'prediction_rep_{}.csv'.format(k), header=True, index=False)
 
             rho, pval = spearmanr(df_predictions['ground_truth'], df_predictions['predicted'])
-            # print('spearman rho = {} pval = {}'.format(rho, pval))
-            pearsonr_rho, pearson_pval = pearsonr(df_predictions['ground_truth'], df_predictions['predicted'])
-            # print('pearson rho = {} pval = {}'.format(pearsonr_rho, pearson_pval))
-            output_array.append([single_feat, patient, rho, pval, pearsonr_rho, pearson_pval])
-        #     df_repeatedkfold_predictions.loc[df_repeatedkfold_predictions.shape[0],:] = [k, rho, pval]
-        # print(df_repeatedkfold_predictions)   
-        # df_repeatedkfold_predictions.to_csv(df_predictions_filename+'/prediction_correlations.csv', header=True, index=False) 
-        # df_feat_importance.to_csv(df_predictions_filename+'feature_importances.csv', header=True, index=False) 
-        
-        
-        # r2 = r2_score(df_predictions['baseline'], df_predictions['predicted'])
-        # print('r2 = ', r2)
+            output_array.append([single_feat, patient, rho, pval])
 
 
 
-    def predict_single_feature_personalized_activity_model_parallel_iterations_k_fold_per_patient(self):
-        # for the sake of comparison
-        time_ = time.time()
+    def train_univariate_accelerometry_models(self):
+        # for comparison of univariate vs multivariate RF
         
         df_original = pd.read_csv(self.actigraph_filename)
-        print(df_original)
-        output_cols = ['single_feat', 'patient_id', 'rho', 'pval','pearson rho', 'pearson pval']
+
+        output_cols = ['single_feat', 'patient_id', 'rho', 'pval']
         manager = multiprocessing.Manager()
         output_array = manager.list()
         features = df_original.columns.values[1:-1]
 
-        excluded_file_no = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
-        patients = [i for i in range(1,76) if i not in excluded_file_no]
+        missing_ids = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
+        patients = [i for i in range(1,76) if i not in missing_ids]
 
-        numberOfThreads = 1
-        jobs = []
-        #v1 :15 done
-        #v2 15:25 done
-        #v3 25:40 done
-        #v4 40:50 running, top
-        #v5 50:50 running, down
+        numberOfThreads = 10 # change for your CPU
+        
+        
         for single_feat in features:
             print('single feat = {}'.format(single_feat))
+            jobs = []
             for patient in patients:
-                
-                # print('------patient = {}'.format(patient))
                     
                 if patient < 10:
                     patient_id = 'VAL0{}.agd'.format(patient)
                 else:
                     patient_id = 'VAL{}.agd'.format(patient)
 
-                # df = df_original[(df_original['Day'] > 0) & (df_original['Filename'] == patient_id)]
-                df = df_original[(df_original['Day'] > 0) & (df_original['Day'] < 41) & (df_original['Filename'] == patient_id)]
+                df = df_original[(df_original['Day'] > 0) & (df_original['patient_id'] == patient_id)]
                 
-                # df_pre = df_original[(df_original['Day'] < 1) & (df_original['Filename'] == patient_id)]
-                # df_pre = df_original[(df_original['Day'] < 1) & (df_original['Day'] > -6) & (df_original['Filename'] == patient_id)]
-                # df = df_original[(df_original['Day'] > 0)]
-                # print(df.shape[0])
-                
-                df.drop(['Filename'], axis=1,inplace=True)
+                df.drop(['patient_id'], axis=1,inplace=True)
                 df.reset_index(drop=True, inplace=True)
                 df.dropna(inplace=True)
 
@@ -236,132 +140,93 @@ class recovery_prediction_pipeline(object):
 
                 X = df[single_feat].values
                 Y = df[label].values
-                # X_pre = df_pre[features].values
-                
-                # Y_pre = df_pre[label].values
-                # X_pre = []
-                # Y_pre = []
-
+            
                 p = multiprocessing.Process(target=self.repeated_k_folds_per_patient_single_feature, args=(output_array,single_feat,patient,X,Y,))
                 jobs.append(p)
-        for i in self.chunks(jobs,numberOfThreads):
-            for j in i:
-                j.start()
-            for j in i:
-                j.join()
-    
-
-        output_df = pd.DataFrame(np.array(output_array), columns=output_cols)
-        print(output_df.shape[0])
+            for i in self.chunks(jobs,numberOfThreads):
+                for j in i:
+                    j.start()
+                for j in i:
+                    j.join()
         
-        output_df.to_csv(self.single_feat_actigraph_predictions_save_folder+'predictions.csv', index=False, header=True)
-        print('run time = {}'.format(time.time()-time_))
+            output_df = pd.DataFrame(np.array(output_array), columns=output_cols)
+            output_df.to_csv(self.single_feat_actigraph_predictions_save_folder+single_feat+'/predictions_corrs.csv', index=False, header=True)
 
-    def predict_single_feature_personalized_activity_model_boxplot_median_k_fold_per_patient(self):
+    def boxplot_univariate_accelerometry_models(self):
 
-        # box plot for R and p values
+        # box plot for R and p values per feature
     
         df_actigraph = pd.read_csv(self.actigraph_filename)
         features = df_actigraph.columns.values[1:-1]
-
-        pred_filename = self.single_feat_actigraph_predictions_save_folder+'predictions.csv'
-        df_original = pd.read_csv(pred_filename)
-        print(df_original)
-        df_original['rho'] = df_original['rho'].clip(lower=0)
-        print(df_original)
-        df_original['log10_pval'] = -1*np.log10(df_original['pval'].values)
         excluded_file_no = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
         patients = [i for i in range(1,76) if i not in excluded_file_no]
 
         for single_feat in features:
-            print('single_feat = {}'.format(single_feat))
             
-            
+            pred_filename = self.single_feat_actigraph_predictions_save_folder+single_feat+'/predictions_corrs.csv'
+            df_original = pd.read_csv(pred_filename)
+            df_original['rho'] = df_original['rho'].clip(lower=0)
+            df_original['log10_pval'] = -1*np.log10(df_original['pval'].values)
             plot_df = pd.DataFrame(columns=['patient_id', 'rho', 'log10_pval'])
             for patient in patients:
-                
-                print('patient = {}'.format(patient))
-                    
-                # if patient < 10:
-                #     patient_id = 'VAL0{}.agd'.format(patient)
-                # else:
-                #     patient_id = 'VAL{}.agd'.format(patient)
 
                 df = df_original[df_original['single_feat'] == single_feat]
                 df = df[df['patient_id'] == patient]
-
-                print(df)
-                
                 plot_df.loc[plot_df.shape[0],:] = [patient, df['rho'].median(), df['log10_pval'].median()]
                 
-
-
             fig, ax = plt.subplots(nrows=1, ncols=2, sharex=False, sharey=False, figsize=(5,5), constrained_layout=True) 
-            # df.boxplot(column=['rho'], ax=ax[0], showfliers=False)
-            # df.boxplot(column=['log10_pval'], ax=ax[1], showfliers=False)
             sns.boxplot(y="rho", data=plot_df, showfliers = False, ax=ax[0], color="royalblue")
             sns.swarmplot(y="rho", data=plot_df, color=".25", ax=ax[0])
             sns.boxplot(y="log10_pval", data=plot_df, showfliers = False, ax=ax[1], color="limegreen")
             sns.swarmplot(y="log10_pval", data=plot_df, color=".25", ax=ax[1])
             plt.tight_layout()
-            # fig.suptitle(foldername, fontsize=8, verticalalignment='bottom')
             ax[0].set_ylim([0,1])
             ax[1].set_ylim([0.1,20])
             ax[1].axhline(y=-1*np.log10(0.05), linewidth=4, color='r')
-
-            plt.savefig(self.single_feat_actigraph_predictions_save_folder+single_feat+'/boxplot_medians.jpg', format='jpg', pad_inches=1)
+            plt.savefig(self.single_feat_actigraph_predictions_save_folder+single_feat+'/boxplot_med_corrs.jpg', format='jpg', pad_inches=1)
+            plot_df.to_csv(self.single_feat_actigraph_predictions_save_folder+single_feat+'/med_predictions_corrs.csv', header=True, index=False) 
             
-            # plt.show() 
-            plot_df.to_csv(self.single_feat_actigraph_predictions_save_folder+single_feat+'/median_predictions.csv', header=True, index=False) 
-            
-    def predict_single_feat_personalized_activity_model_rmse_patient_median(self):
-        # get the rmse for each patient
+    def RMSE_univariate_accelerometry_models(self):
+        # get the rmse and mae for each patient
         df_actigraph = pd.read_csv(self.actigraph_filename)
         features = df_actigraph.columns.values[1:-1]
 
         for single_feat in features:
-            print('single_feat = {}'.format(single_feat))
+            
             df_rmse = pd.DataFrame(columns=['patient_id', 'RMSE', 'MAE'])
-            excluded_file_no = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
-            patients = [i for i in range(1,76) if i not in excluded_file_no]
+            miss_ids = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
+            patients = [i for i in range(1,76) if i not in miss_ids]
             for patient in patients:
                 
-                print('patient = {}'.format(patient))
                 df_patient = pd.DataFrame(columns=['ground_truth', 'predicted'])
                 for rep in range(1,self.no_of_reps+1):
-                    # if patient < 10:
-                    #     patient_id = 'VAL0{}.agd'.format(patient)
-                    # else:
-                    #     patient_id = 'VAL{}.agd'.format(patient)
+                
                     pred_filename = self.single_feat_actigraph_predictions_save_folder+single_feat+'/patient_{}/prediction_rep_{}.csv'.format(patient, rep)
                     df_rep =pd.read_csv(pred_filename)
                     assert df_rep.iloc[0,0] == single_feat, 'feat names dont match'
                     assert df_rep.iloc[0,1] == patient, 'patient ids dont match'
-                    # print(df_rep)
                     df_rep.drop('single_feat', axis=1, inplace=True)
                     df_rep.drop('patient_id', axis=1, inplace=True)
                     df_patient = pd.concat([df_patient, df_rep], axis=0)
                 df_patient.reset_index(drop=True, inplace=True)
-                print(df_patient)
                 rmse = mean_squared_error(df_patient['ground_truth'],df_patient['predicted'], squared=False)
                 mae = mean_absolute_error(df_patient['ground_truth'],df_patient['predicted'])
                 df_rmse = pd.concat([df_rmse, pd.DataFrame([[patient, rmse, mae]], columns=['patient_id', 'RMSE', 'MAE'])], axis=0)
-            print(df_rmse)
+        
             df_rmse.to_csv(self.single_feat_actigraph_predictions_save_folder+single_feat+'/predictions_rmse.csv', index=False, header=True)
             
-    def plot_predict_single_feat_vs_multi_personalized_activity_model_rmse_patient_median(self):
+    def boxplot_RMSE_univariate_accelerometry_models(self):
         #plot model performance comparison in terms of RMSE and MAE for our model vs single_feature models
+        # run this after training both univariate and multivariate RFs
         
         fig, ax = plt.subplots(nrows=2, ncols=1, sharex=False, sharey=False, figsize=(15,10)) 
         
         df_plot_RMSE = pd.DataFrame()
         df_plot_MAE = pd.DataFrame()
 
-        df = pd.read_csv(self.actigraph_predictions_save_folder+'predictions_rmse.csv')
-        print(df)
+        df = pd.read_csv(self.actigraph_predictions_save_folder+'predictions_rmse.csv') # this files is generated by multivariate RF model
         df_plot_RMSE['Multivariate Clock'] = df['RMSE']
         df_plot_MAE['Multivariate Clock'] = df['MAE']
-
 
         df_actigraph = pd.read_csv(self.actigraph_filename)
         features = df_actigraph.columns.values[1:-1]
@@ -373,10 +238,8 @@ class recovery_prediction_pipeline(object):
 
             
         df_plot_RMSE.plot(kind='box', ax=ax[0], showfliers=False)
-        # ax[0].set_ylim([0,1])
         
         df_plot_MAE.plot(kind='box', ax=ax[1], showfliers=False)
-        # ax[1].set_ylim([0,1])
         plt.tight_layout()
         ax[0].tick_params(labelrotation=90)
         ax[1].tick_params(labelrotation=90)
@@ -388,15 +251,12 @@ class recovery_prediction_pipeline(object):
         
 
 
-    def repeated_k_folds_per_patient(self, output_array,patient,X,Y,X_pre,Y_pre,features,model_selection=False, param_grid = [{'n_estimators': [50,100,200], 'loss': ['linear', 'square', 'exponential']}]):
-        print('**************************** repeated_k_folds_per_patient')
-
-       
+    def repeated_k_folds_per_patient(self, output_array,patient,X,Y,X_pre,Y_pre,features):
+        
         df_feat_importance_col = ['iteration', 'fold']
         df_feat_importance_col.extend(features)
         df_feat_importance = pd.DataFrame(columns=df_feat_importance_col)
         
-        # params for rf regressor param_grid = [{'n_estimators': [50,100,200], 'max_depth': [2, 5, 10, None]}]
         for k in range(1, self.no_of_reps+1):
             df_predictions = pd.DataFrame(columns=['patient_id', 'ground_truth', 'predicted'])
             df_predictions_preIncluded = pd.DataFrame(columns=['patient_id', 'ground_truth', 'predicted'])
@@ -405,87 +265,35 @@ class recovery_prediction_pipeline(object):
             fold = 0
 
             for train_index, test_index in kf.split(X):
-                print('rep = {}, fold = {}'.format(k,fold))
             
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = Y[train_index], Y[test_index]
                 
                 X_test_combined = np.concatenate((X_test, X_pre), axis=0)
                 Y_test_combined = np.concatenate((y_test, Y_pre), axis=0)
-                
-                # scalerX = StandardScaler()
-                # scalerX.fit(X_train)
-                # X_train = scalerX.transform(X_train)
-                # X_test = scalerX.transform(X_test)
-                # X_test_combined = scalerX.transform(X_test_combined)
-
-                # scalerY = StandardScaler()
-                # scalerY.fit(y_train.reshape(-1, 1))
-                # y_train = scalerY.transform(y_train.reshape(-1, 1))
-                # y_test = scalerY.transform(y_test.reshape(-1, 1))
-                # Y_test_combined = scalerY.transform(Y_test_combined.reshape(-1, 1))
 
                 max_iter = 1000000
-                if model_selection:
-                    # grid = GridSearchCV(estimator=estimator(random_state=k), param_grid=param_grid, cv=5, n_jobs=10, iid=True)
-                    grid = GridSearchCV(estimator=estimator(DecisionTreeRegressor(max_depth=4), random_state=k), param_grid=param_grid, cv=5, n_jobs=10, iid=True)
-                    grid.fit(X_train, y_train.flatten())
-                    clf = grid.best_estimator_
-                else:
-                    if self.estimator_str == 'RF':
-                        clf = RandomForestRegressor(n_estimators=self.RF_no_of_estimators, random_state=k)
-                    else: 
-                        clf = AdaBoostRegressor(DecisionTreeRegressor(max_depth=4), n_estimators=self.RF_no_of_estimators, random_state=k)
-                    
-                    # clf = estimator(n_estimators=300, n_jobs=5)
-                    # clf = estimator(DecisionTreeRegressor(max_depth=4), n_estimators=300, random_state=k)
-                    clf.fit(X_train, y_train.flatten())
-                
-                
+                   
+                clf = RandomForestRegressor(n_estimators=self.RF_no_of_estimators, random_state=k)
+                clf.fit(X_train, y_train.flatten())
             
                 y_predicted = clf.predict(X_test)
                 y_predicted_combined = clf.predict(X_test_combined)
         
                 importances = clf.feature_importances_
-                # print(importances)
                 df_feat_importance.loc[df_feat_importance.shape[0],:] = [k, fold] + list(importances)
-                # print(df_feat_importance)
-                # sys.exit()
-                # std = np.std([tree.feature_importances_ for tree in clf.estimators_],
-                # std = np.std([tree.feature_importances_ for tree in clf.estimators_],
-                #             axis=0)
-                # indices = np.argsort(importances)[::-1]
-
-                # Print the feature ranking
-                # print("Feature ranking:")
-
-                # for f in range(X.shape[1]):
-                #     print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
-                # return
-                # for i in range(y_test.shape[0]):
-                #     df_predictions.loc[df_predictions.shape[0],:] = [patient_ids_test[i], scalerY.inverse_transform(y_test)[i][0], scalerY.inverse_transform(y_predicted)[i]]
-                #     df_fold_predictions.loc[df_fold_predictions.shape[0],:] = [patient_ids_test[i], scalerY.inverse_transform(y_test)[i][0], scalerY.inverse_transform(y_predicted)[i]]
-                #     # df_predictions.loc[df_predictions.shape[0],:] = [patient_ids_test[i], y_test[i], y_predicted[i]]
-                # print(y_test.flatten())
-                # print(y_predicted)
+                
                 df_fold_predictions = pd.DataFrame(columns=['patient_id', 'ground_truth', 'predicted'])
                 for y_ground, y_pred in zip(y_test.flatten(), y_predicted):
-                    # df_predictions.loc[df_predictions.shape[0],:] = [patient, scalerY.inverse_transform([y_ground])[0], scalerY.inverse_transform([y_pred])[0]]
-                    # df_fold_predictions.loc[df_fold_predictions.shape[0],:] = [patient, scalerY.inverse_transform([y_ground])[0], scalerY.inverse_transform([y_pred])[0]]
                     df_predictions.loc[df_predictions.shape[0],:] = [patient, y_ground, y_pred]
                     df_fold_predictions.loc[df_fold_predictions.shape[0],:] = [patient, y_ground, y_pred]
                 
                 for y_ground, y_pred in zip(Y_test_combined.flatten(), y_predicted_combined):
-                    # df_predictions_preIncluded.loc[df_predictions_preIncluded.shape[0],:] = [patient, scalerY.inverse_transform([y_ground])[0], scalerY.inverse_transform([y_pred])[0]]
                     df_predictions_preIncluded.loc[df_predictions_preIncluded.shape[0],:] = [patient, y_ground, y_pred]
                 
                 fold += 1
                 
-                rho, pval = spearmanr(df_fold_predictions['ground_truth'], df_fold_predictions['predicted'])
-                print('spearman rho = {} pval = {}'.format(rho, pval))
-                rho, pval = pearsonr(df_fold_predictions['ground_truth'], df_fold_predictions['predicted'])
-                print('pearson rho = {} pval = {}'.format(rho, pval))
-                
+                rho, pval = spearmanr(df_fold_predictions['ground_truth'], df_fold_predictions['predicted'])         
         
             
             df_predictions.sort_values(by='ground_truth', axis=0, ascending=True, inplace=True)
@@ -499,70 +307,46 @@ class recovery_prediction_pipeline(object):
             df_predictions_preIncluded.to_csv(df_predictions_preIncluded_filename+'prediction_rep_{}.csv'.format(k), header=True, index=False)
 
             rho, pval = spearmanr(df_predictions['ground_truth'], df_predictions['predicted'])
-            print('spearman rho = {} pval = {}'.format(rho, pval))
-            pearsonr_rho, pearson_pval = pearsonr(df_predictions['ground_truth'], df_predictions['predicted'])
-            print('pearson rho = {} pval = {}'.format(pearsonr_rho, pearson_pval))
-            output_array.append([patient, rho, pval, pearsonr_rho, pearson_pval])
-        #     df_repeatedkfold_predictions.loc[df_repeatedkfold_predictions.shape[0],:] = [k, rho, pval]
-        # print(df_repeatedkfold_predictions)   
-        # df_repeatedkfold_predictions.to_csv(df_predictions_filename+'/prediction_correlations.csv', header=True, index=False) 
+            output_array.append([patient, rho, pval])
+       
         df_feat_importance.to_csv(df_predictions_filename+'feature_importances.csv', header=True, index=False) 
-        
-        
-        # r2 = r2_score(df_predictions['baseline'], df_predictions['predicted'])
-        # print('r2 = ', r2)
 
 
         
 
-    def predict_personalized_activity_model_parallel_iterations_k_fold_per_patient(self):
-        time_ = time.time()
-        
-        # pred_filename = self.actigraph_predictions_save_folder+'predictions.csv'
-        
+    def train_accelerometry_model(self):
+        # train and test the multivariate RF model on accelerometry featureset
         df_original = pd.read_csv(self.actigraph_filename)
-        print(df_original)
-        output_cols = ['patient_id', 'rho', 'pval','pearson rho', 'pearson pval']
+        output_cols = ['patient_id', 'rho', 'pval']
         manager = multiprocessing.Manager()
         output_array = manager.list()
         
 
-        excluded_file_no = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
-        patients = [i for i in range(1,76) if i not in excluded_file_no]
+        missing_ids = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
+        patients = [i for i in range(1,76) if i not in missing_ids]
 
-        numberOfThreads = 5
+        numberOfThreads = 5 # adjust for your CPU config
         jobs = []
         for patient in patients:
             
-            print('patient = {}'.format(patient))
                 
             if patient < 10:
                 patient_id = 'VAL0{}.agd'.format(patient)
             else:
                 patient_id = 'VAL{}.agd'.format(patient)
 
-            # df = df_original[(df_original['Day'] > 0) & (df_original['Filename'] == patient_id)]
-            df = df_original[(df_original['Day'] > 0) & (df_original['Day'] < 41) & (df_original['Filename'] == patient_id)]
+            df = df_original[(df_original['Day'] > 0) & (df_original['patient_id'] == patient_id)]
+            df_pre = df_original[(df_original['Day'] < 1) & (df_original['patient_id'] == patient_id)]
             
-            # df_pre = df_original[(df_original['Day'] < 1) & (df_original['Filename'] == patient_id)]
-            df_pre = df_original[(df_original['Day'] < 1) & (df_original['Day'] > -6) & (df_original['Filename'] == patient_id)]
-            # df = df_original[(df_original['Day'] > 0)]
-            # print(df.shape[0])
-            
-            df.drop(['Filename'], axis=1,inplace=True)
+            df.drop(['patient_id'], axis=1,inplace=True)
             df.reset_index(inplace=True)
             df.dropna(inplace=True)
-
             label = 'Day'
             features = df.columns.values[1:-1] #remove index and label columns
-
             X = df[features].values
             Y = df[label].values
             X_pre = df_pre[features].values
-            
             Y_pre = df_pre[label].values
-            # X_pre = []
-            # Y_pre = []
 
             p = multiprocessing.Process(target=self.repeated_k_folds_per_patient, args=(output_array,patient,X,Y,X_pre,Y_pre,features,))
             jobs.append(p)
@@ -574,10 +358,7 @@ class recovery_prediction_pipeline(object):
     
 
         output_df = pd.DataFrame(np.array(output_array), columns=output_cols)
-        print(output_df.shape[0])
-        
         output_df.to_csv(self.actigraph_predictions_save_folder+'predictions.csv', index=False, header=True)
-        print('run time = {}'.format(time.time()-time_))
         
         
 
@@ -586,154 +367,67 @@ class recovery_prediction_pipeline(object):
         for i in range(0, len(l), n):
             yield l[i:i + n]
 
-    def predict_personalized_activity_model_boxplot_median_k_fold_per_patient(self):
+    def boxplot_accelerometry_model(self):
         pred_filename = self.actigraph_predictions_save_folder+'predictions.csv'
         df_original =pd.read_csv(pred_filename)
-        print(df_original)
-        # df_original['rho'] = df_original['rho'].clip_lower(0)
         df_original['rho'] = df_original['rho'].clip(lower=0)
-        print(df_original)
         df_original['log10_pval'] = -1*np.log10(df_original['pval'].values)
-        excluded_file_no = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
-        patients = [i for i in range(1,76) if i not in excluded_file_no]
+        missing_ids = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
+        patients = [i for i in range(1,76) if i not in missing_ids]
         plot_df = pd.DataFrame(columns=['patient_id', 'rho', 'log10_pval'])
+        
         for patient in patients:
-            
-            print('patient = {}'.format(patient))
-                
-            # if patient < 10:
-            #     patient_id = 'VAL0{}.agd'.format(patient)
-            # else:
-            #     patient_id = 'VAL{}.agd'.format(patient)
-
             df = df_original[df_original['patient_id'] == patient]
-
-            print(df)
-            
             plot_df.loc[plot_df.shape[0],:] = [patient, df['rho'].median(), df['log10_pval'].median()]
             
-
-
         fig, ax = plt.subplots(nrows=1, ncols=2, sharex=False, sharey=False, figsize=(5,5), constrained_layout=True) 
-        # df.boxplot(column=['rho'], ax=ax[0], showfliers=False)
-        # df.boxplot(column=['log10_pval'], ax=ax[1], showfliers=False)
         sns.boxplot(y="rho", data=plot_df, showfliers = False, ax=ax[0], color="royalblue")
         sns.swarmplot(y="rho", data=plot_df, color=".25", ax=ax[0])
         sns.boxplot(y="log10_pval", data=plot_df, showfliers = False, ax=ax[1], color="limegreen")
         sns.swarmplot(y="log10_pval", data=plot_df, color=".25", ax=ax[1])
         plt.tight_layout()
-        # fig.suptitle(foldername, fontsize=8, verticalalignment='bottom')
         ax[0].set_ylim([0,1])
         ax[1].set_ylim([0.1,20])
         ax[1].axhline(y=-1*np.log10(0.05), linewidth=4, color='r')
 
         plt.savefig(self.actigraph_predictions_save_folder+'boxplot_medians.jpg', format='jpg', pad_inches=1)
-        
-        # plt.show() 
         plot_df.to_csv(self.actigraph_predictions_save_folder+'median_predictions.csv', header=True, index=False) 
 
-
-    def predict_personalized_activity_model_boxplot_k_fold_each_patient(self):
-        print('### we are here')
-        pred_filename = self.actigraph_predictions_save_folder+'predictions.csv'
-        df_original =pd.read_csv(pred_filename)
-        print(df_original)
-        # df_original['rho'] = df_original['rho'].clip_lower(0)
-        df_original['rho'] = df_original['rho'].clip(lower=0)
-        print(df_original)
-        df_original['log10_pval'] = -1*np.log10(df_original['pval'].values)
-        excluded_file_no = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
-        patients = [i for i in range(1,76) if i not in excluded_file_no]
-        plot_df_rho = [pd.DataFrame() for _ in range(5)]
-        plot_df_pval = [pd.DataFrame() for _ in range(5)]
-        fig_rho, ax_rho = plt.subplots(nrows=5, ncols=1, figsize=(14,10)) 
-        fig_pval, ax_pval = plt.subplots(nrows=5, ncols=1, figsize=(14,10)) 
-        for idx, patient in enumerate(patients):
-            
-            print('patient = {}'.format(patient))
-                
-            # if patient < 10:
-            #     patient_id = 'VAL0{}.agd'.format(patient)
-            # else:
-            #     patient_id = 'VAL{}.agd'.format(patient)
         
-            df = df_original[df_original['patient_id'] == patient]
-            df.reset_index(drop=True, inplace=True)
-            df['log10_pval'] = -1*np.log10(df['pval'])
-            # print(df)
-            # print(plot_df_rho[idx//10])
-            # print(plot_df_pval[idx//4])
-            this_plot_rho = plot_df_rho[idx//10]
-            this_plot_pval = plot_df_pval[idx//10]
-            # this_plot['patient_id'] = df['patient_id']
-            this_plot_rho['Patient {}'.format(int(idx))] = df['rho']
-            # print(this_plot_rho)
-
-
-            this_plot_pval['Patient {}'.format(int(idx))] = df['log10_pval']
-            # print(this_plot_pval)
-            # print(plot_df_rho[idx//10])
-            # print(plot_df_pval[idx//4])
-
-
-
-            # ax1[idx//(len(patients)//3),idx%(len(patients)//3)].boxplot(df['rho'])
-            # ax2[idx//(len(patients)//3),idx%(len(patients)//3)].boxplot(df['log10_pval'])
-            # plt.show()
-            # sys.exit()
-            # plot_df.loc[plot_df.shape[0],:] = [patient, df['rho'].median(), df['log10_pval'].median()]
-            
-        for i in range(5):
-            # print(plot_df_rho[i])
-            # print(plot_df_pval[i])
-        
-            plot_df_rho[i].boxplot(ax=ax_rho[i])
-            plot_df_pval[i].boxplot(ax=ax_pval[i])
-        # plt.show()
-        plt.savefig(self.actigraph_predictions_save_folder+'temp_copy.jpg', format='jpg', pad_inches=1)
-        
-    def predict_personalized_activity_model_rmse_patient_median(self):
+    def RMSE_accelerometry_model(self):
         # get the rmse for each patient
         df_rmse = pd.DataFrame(columns=['patient_id', 'RMSE', 'MAE'])
         excluded_file_no = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
         patients = [i for i in range(1,76) if i not in excluded_file_no]
         for patient in patients:
             
-            print('patient = {}'.format(patient))
             df_patient = pd.DataFrame(columns=['ground_truth', 'predicted'])
             for rep in range(1,self.no_of_reps+1):
-                # if patient < 10:
-                #     patient_id = 'VAL0{}.agd'.format(patient)
-                # else:
-                #     patient_id = 'VAL{}.agd'.format(patient)
+    
                 pred_filename = self.actigraph_predictions_save_folder+'patient_{}/prediction_rep_{}.csv'.format(patient, rep)
                 df_rep =pd.read_csv(pred_filename)
                 assert df_rep.iloc[0,0] == patient, 'patient ids dont match'
-                # print(df_rep)
+                
                 df_rep.drop('patient_id', axis=1, inplace=True)
                 df_patient = pd.concat([df_patient, df_rep], axis=0)
             df_patient.reset_index(drop=True, inplace=True)
-            print(df_patient)
             rmse = mean_squared_error(df_patient['ground_truth'],df_patient['predicted'], squared=False)
             mae = mean_absolute_error(df_patient['ground_truth'],df_patient['predicted'])
             df_rmse = pd.concat([df_rmse, pd.DataFrame([[patient, rmse, mae]], columns=['patient_id', 'RMSE', 'MAE'])], axis=0)
-        print(df_rmse)
+    
         df_rmse.to_csv(self.actigraph_predictions_save_folder+'predictions_rmse.csv', index=False, header=True)
             
             
     
-    def plot_personalized_activity_model_lineplot_median_k_fold_per_patient(self):
-        
-        excluded_file_no = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
-        patients = [i for i in range(1,76) if i not in excluded_file_no]
+    def lineplot_accelerometry_model(self):
+        # plot line plot with CI work in progress
+        missing_ids = [3, 12, 15, 16, 19, 20, 24, 27, 28, 31, 36, 40, 41, 46, 47, 50, 52, 53, 56, 58, 62,  63, 66, 65, 67, 74]
+        patients = [i for i in range(1,76) if i not in missing_ids]
         confidence_df_col = ['patient_id']
         confidence_df_col.extend([d for d in range(-5,41) if d!=0])
-        # confidence_df_col.extend([d for d in range(-5,43) if d!=0])
         confidence_df = pd.DataFrame(columns=confidence_df_col)
-        # print(patients)
         
         x1 = np.linspace(-5, 46, 500)
-        # x1 = np.linspace(-5, 48, 500)
         for patient in patients: 
             patient_filename = self.actigraph_predictions_save_folder+'median_predictions/Predictions_patient_{}.csv'.format(patient)
             df_patient_pred = pd.read_csv(patient_filename)
@@ -741,8 +435,7 @@ class recovery_prediction_pipeline(object):
             row = [patient]
             row.extend(list(df_patient_pred['predicted_value'].values))
             confidence_df.loc[confidence_df.shape[0]] = row
-            print(df_patient_pred)
-        print(confidence_df)
+
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5)) 
         for i in range(confidence_df.shape[0]):
             x = []
@@ -754,9 +447,8 @@ class recovery_prediction_pipeline(object):
             tck1 = interpolate.splrep(x,y)
             y1 = interpolate.splev(x1, tck1)
             ax.plot(x1,y1,color='darkgrey', linewidth=0.5, alpha=0.5)
-        # confidence=0.95
+
         confidence=0.9
-        # confidence=0.99
         average = []
         upper = []
         lower = []
@@ -775,22 +467,15 @@ class recovery_prediction_pipeline(object):
         tck4 = interpolate.splrep(confidence_df.columns.values[1:],lower)
         y4 = interpolate.splev(x1, tck4)  
         ax.plot(x1,y2,color='red', linewidth=2)
-        # ax.plot(x1,y3,color='green', linewidth=1)
-        # ax.plot(x1,y4,color='blue', linewidth=1)
         ax.fill_between(x1, y3, y4, color='red', alpha=0.5)
-
         ax.set_xlim([-5,40])
-        # ax.set_xlim([-5,42])
         ax.set_ylim([0,40])
-        # ax.set_ylim([0,42])
         plt.xticks([-5,0,15,30,40])
-        # plt.xticks([-5,0,15,30])
         plt.title('avg spline (actual vs predicted day since surgery) over all patient models, {} CI'.format(confidence), fontsize=7)
-        # plt.show()
-        plt.savefig(self.actigraph_predictions_save_folder+'Preds_lineplot_only_avg_spline_CI_{}_medians.pdf'.format(confidence), format='pdf', dpi=600)
+        plt.savefig(self.actigraph_predictions_save_folder+'Preds_lineplot_CI_{}.pdf'.format(confidence), format='pdf', dpi=600)
         
 
-    def plot_clustered_personalized_activity_model_lineplot_median_k_fold_per_patient(self, CI, n_c):
+    def lineplot_clustered_accelerometry_model(self, CI, n_c):
 
 
         # a = np.array([1, 2, 3, 4, 4])
@@ -3824,55 +3509,31 @@ class recovery_prediction_pipeline(object):
 if __name__ == "__main__":
 
 
-    # org_slope_filename = '/home/raminf/HipVal/recovery_features/New Ramin/AGD_AdaBoost_PerUser_BaggingVal_newRun_preIncluded4prediction_rerun/CSV/Opt_breaking_points/opt_breaking_points_new.csv'
-
     actigraph_filename = './data/wearable/Activity_Sleep_UserStandardized.csv'
-
-    # estimator_str = 'RF'
-    
-    # RF_no_of_estimators = 100
-    # no_of_folds = 10
-    # no_of_reps = 30
-
-    # horizontal_recovered = True
-    # first_day = -5
-
-    main_save_folder = None # set the main save folder otherwise it will generate a new folder
-    # main_save_folder = '/home/raminf/HipVal/recovery_features/Ramin_slope_prediction/output/RF_Pre_stim_adjusted_100estimators_10folds_30reps_imputed_DayAdded_OutlierRemoved_first2days_removed_UserStandardized_2020-05-12_17-28-34/' # final with penalization VAL<54
-
-
-    # target_recovery_feature = 'baseline_pred' 
-    # target_recovery_feature_type = '0.25_quantile' 
-    
-    
     cytof_filename = './data/immune/HipValidation_cytof_Pre_stim_baseline_adjusted_all_plates.csv.csv'
-
-
-
-    # cytof_dataset = 'Pre_stim_adjusted'
-   
-
     olink_filename = './data/proteomics/proteomics/olink_Pre.csv'
-
     clinical_report = '/data/clinical/Demographics/clinical.csv'
 
+    main_save_folder = None # if the working main save folder is not defined, generate a new folder
+    main_save_folder = './output/RF_100estimators_10folds_30reps_2021-01-29_12-12-54/' # continue working with this output folder
 
-    recovery_prediction_pipeline = recovery_prediction_pipeline(main_save_folder, actigraph_filename, cytof_filename, olink_filename, clinical_report)
+    recovery_prediction_pipeline = recovery_prediction_pipeline(main_save_folder, actigraph_filename, cytof_filename, olink_filename, clinical_report) # define class obj
 
-    # recovery_prediction_pipeline.predict_single_feature_personalized_activity_model_parallel_iterations_k_fold_per_patient()
-    # recovery_prediction_pipeline.predict_single_feature_personalized_activity_model_boxplot_median_k_fold_per_patient()
-    # recovery_prediction_pipeline.predict_single_feat_personalized_activity_model_rmse_patient_median()
-    # recovery_prediction_pipeline.plot_predict_single_feat_vs_multi_personalized_activity_model_rmse_patient_median()
+    # recovery_prediction_pipeline.train_univariate_accelerometry_models() #Train and evaluate univariate accelerometery RF models 
+    # recovery_prediction_pipeline.boxplot_univariate_accelerometry_models() # plot corrs
+    # recovery_prediction_pipeline.RMSE_univariate_accelerometry_models()
+    # recovery_prediction_pipeline.boxplot_RMSE_univariate_accelerometry_models()
 
-    # recovery_prediction_pipeline.predict_personalized_activity_model_parallel_iterations_k_fold_per_patient()
-    # recovery_prediction_pipeline.predict_personalized_activity_model_boxplot_median_k_fold_per_patient()
-    # recovery_prediction_pipeline.predict_personalized_activity_model_boxplot_k_fold_each_patient()
-    # recovery_prediction_pipeline.predict_personalized_activity_model_rmse_patient_median()
+    # recovery_prediction_pipeline.train_accelerometry_model()
+    # recovery_prediction_pipeline.boxplot_accelerometry_model()
+    # recovery_prediction_pipeline.RMSE_accelerometry_model()
+    recovery_prediction_pipeline.lineplot_clustered_accelerometry_model() # should be moved down
+    recovery_prediction_pipeline.lineplot_accelerometry_model() # should be moved down
+    # recovery_prediction_pipeline.predict_personalized_activity_model_corr_network()
 
     # recovery_prediction_pipeline.extract_recovery_feature()
 
-    # recovery_prediction_pipeline.plot_personalized_activity_model_lineplot_median_k_fold_per_patient()
-    # recovery_prediction_pipeline.predict_personalized_activity_model_corr_network()
+    
 
     # recovery_prediction_pipeline.predict_recovery_feature_repeated_k_folds()
     # recovery_prediction_pipeline.plot_recovery_feature_scatter_plot_predictions()
@@ -3887,7 +3548,7 @@ if __name__ == "__main__":
     # recovery_prediction_pipeline.predict_recovery_feature_repeated_k_folds_subset_of_features(predict_by='marker')    
     # recovery_prediction_pipeline.plot_recovery_feature_predictions_repeated_k_folds_subset_of_features(predict_by='marker') 
 
-    # recovery_prediction_pipeline.plot_clustered_personalized_activity_model_lineplot_median_k_fold_per_patient(CI=0.9, n_c=2)
+
     # # recovery_prediction_pipeline.classification_recovery_slope()
     
 
