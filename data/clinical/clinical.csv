@@ -1,4 +1,4 @@
-ID,cirs_score,cirs_severity,womac_p_d84,womac_f_d84,srs_auc_new
+ID,cirs_score,cirs_severity,womac_p_d84,womac_f_d84,srs_auc
 VAL01,4,2,0,0,230.4475
 VAL02,13,2.2,0,0,425.27
 VAL04,4,2,1,4,298.59
