@@ -1017,7 +1017,7 @@ if __name__ == "__main__":
     actigraph_filename = './data/wearable/Activity_Sleep_UserStandardized.csv'
     cytof_filename = './data/immune/HipValidation_cytof_Pre_stim_baseline_adjusted_all_plates.csv'
     olink_filename = './data/proteomics/olink_Pre.csv'
-    clinical_report = './data/clinical/clinical.csv'
+    clinical_report = './data/patient_reported/patient_reported.csv'
 
     main_save_folder = None # if the working main save folder is not defined, generate a new folder
     # main_save_folder = './output/RF_100estimators_10folds_30reps_YOURWORKINGDIRECTORY/' # continue working with this output folder
