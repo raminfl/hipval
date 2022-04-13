@@ -1,11 +1,13 @@
 # Objective activity parameters track patient-specific physical recovery trajectories after surgery and link with individual preoperative immune states
 
-Link to paper: [link] \
+Link to paper: [link](https://journals.lww.com/annalsofsurgery/abstract/9000/objective_activity_parameters_track.93245.aspx) \
 Codes and data made available for easy retraining of models, reproduction of results, and generation of plots presented by the authors in the main text and supplementary materials.
 
 ## citation information
 Please cite the paper if you use any part of the code or datasets.
-[citation]
+
+Fallahzadeh, Ramin PhD*,†; Verdonk, Franck MD PhD*; Ganio, Ed PhD*; Culos, Anthony BS*,†; Stanley, Natalie PhD‡; Marić, Ivana PhD§; Chang, Alan L. PhD*,†; Becker, Martin PhD*,†; Phongpreecha, Thanaphong PhD*,†,¶; Xenochristou, Maria PhD*,†; De Francesco, Davide PhD*,†; Espinosa, Camilo BS*,†; Gao, Xiaoxiao BS*; Tsai, Amy BS*; Sultan, Pervez MD PhD*; Tingle, Martha RN*; Amanatullah, Derek F. MD PhD||; Huddleston, James I. MD||; Goodman, Stuart B. MD PhD||; Gaudilliere, Brice MD PhD*,§; Angst, Martin S. MD PhD*; Aghaeepour, Nima PhD*,†,§ Objective Activity Parameters Track Patient-Specific Physical Recovery Trajectories After Surgery and Link With Individual Preoperative Immune States, Annals of Surgery: October 08, 2021 - Volume - Issue -
+doi: 10.1097/SLA.0000000000005250 
 
 ## prerequisites
 ```
